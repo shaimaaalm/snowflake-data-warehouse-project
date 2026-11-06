@@ -1,3 +1,13 @@
+/*
+==========================================================================
+DDL script: create bronze tables
+==========================================================================
+script puropse:
+this script create tables in the 'bronze' schema , dropping existing tables 
+if they already exist.
+run this script to redefine the DDL strcture of 'bronze' tables
+==========================================================================
+*/
 
 create or replace table bronze_products (
 data variant) ;
