@@ -1,0 +1,627 @@
+/*
+===============================================================================
+Quality Checks
+===============================================================================
+Script Purpose:
+    This script performs various quality checks for data consistency, accuracy, 
+    and standardization across the 'silver' schemas. It includes checks for:
+    - Null or duplicate primary keys.
+    - Unwanted spaces in string fields.
+    - Data standardization and consistency.
+    - Invalid date ranges and orders.
+    - Data consistency between related fields.
+    - negative numbers.
+    - relationships
+
+Usage Notes:
+    - Run these checks after data loading Silver Layer.
+    - Investigate and resolve any discrepancies found during the checks.
+===============================================================================
+*/
+
+
+-- ============================================================================
+-- Checking 'silver_layer'
+-- ============================================================================
+-- Check for NULLs or Duplicates in Primary Key
+-- Expectation: sucess
+
+version: 2
+models:
+  - name: silver_products
+    description: 'the table of products'
+    columns:
+      - name: product_id
+        description: "Unique identifier for each product"
+        tests:
+          - unique
+          - not_null
+      - name: p_name
+        description: "Name of the product"
+        tests:
+          - not_null 
+      - name: category
+        description: "Main category of the product"
+        tests:
+          - not_null
+      - name: subcategory1
+        description: "Subcategory of the product"
+        tests:
+          - not_null
+      - name: selling_price
+        description: "Retail selling price"
+        data_tests:
+          - not_null
+          - non_negative
+      - name: brand1
+        description: "Brand name of the product"
+        tests:
+          - not_null
+      - name: unit_cost
+        description: "Cost price per unit"
+        tests:
+          - not_null
+          - non_negative
+      - name: weight_kg1
+        description: "Product weight in kilograms"
+        tests:
+          - not_null
+          - non_negative
+         
+      - name: is_active
+        description: "Flag indicating whether product is active"
+        tests:
+          - not_null
+      - name: created_at
+        description: "Timestamp when the product was created"
+        tests:
+          - not_null
+      - name: rec_level
+        description: "Minimum inventory level before reordering"
+        tests:
+          - not_null
+          - non_negative
+
+  # ==========================================
+  # 2.  (customers)
+  # ==========================================
+  - name: silver_customers
+    description: "Staging model for customers data"
+    columns:
+      - name: customer_id
+        data_tests:
+          - unique
+          - not_null
+      - name: name
+        data_tests:
+          - not_null
+      - name: segment
+        data_tests:
+          - not_null
+      - name: country
+        data_tests:
+          - not_null
+      - name: city
+        data_tests:
+          - not_null
+      - name: date
+        data_tests:
+          - not_null
+      - name: status
+        data_tests:
+          - not_null
+# ==========================================
+  # 3. (orders)
+  # ==========================================
+  - name: silver_orders
+    description: "Staging model for orders data"
+    columns:
+      - name: order_id
+        data_tests:
+          - unique
+          - not_null
+      - name: customer_id
+        data_tests:
+          - not_null
+      - name: order_date
+        data_tests:
+          - not_null
+      - name: shipment_method
+        data_tests:
+          - not_null
+      - name: total_amount
+        data_tests:
+          - not_null
+          - non_negative
+      - name: priority
+        data_tests:
+          - not_null
+      - name: order_status
+        data_tests:
+          - not_null
+# ==========================================
+  # 4. (order_items)
+  # ==========================================
+  - name: silver_order_items
+    description: "Staging model for order line items"
+    columns:
+      - name: order_item_id
+        data_tests:
+          - unique
+          - not_null
+      - name: order_id
+        data_tests:
+          - not_null
+          -  unique   
+          -  relationships:
+            
+              to: ref('silver_orders')
+              field: order_id
+        
+      - name: product_id
+        data_tests:
+          - not_null
+      - name: quantity
+        data_tests:
+          - not_null
+          - non_negative
+      - name: unit_price
+        data_tests:
+          - not_null
+          - non_negative
+      - name: amount
+        data_tests:
+          - not_null
+          - non_negative
+      - name: discount1
+        data_tests:
+          - not_null
+          - non_negative
+# ==========================================
+#   5-returns
+  # ==========================================
+  - name: silver_returns
+    description: "Staging model for order item returns"
+    columns:
+      - name: return_id
+        data_tests:
+          - unique
+          - not_null
+      - name: order_item_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('silver_order_items')
+              field: order_item_id
+        
+      - name: return_date
+        data_tests:
+          - not_null
+      - name: return_quantity
+        data_tests:
+          - not_null
+          - non_negative
+      - name: refund_amount1
+        data_tests:
+          - not_null
+          - non_negative
+      - name: return_status
+        data_tests:
+          - not_null
+      - name: return_reason
+        data_tests:
+          - not_null
+# ==========================================
+  # 6.(shipments)
+  # ==========================================
+  - name: silver_shipments
+    description: "Staging model for shipment data"
+    columns:
+      - name: shipment_id
+        data_tests:
+          - unique
+          - not_null
+
+      - name: ship_date
+        data_tests:
+          - not_null
+
+      - name: expected_delivery_date
+        data_tests:
+          - not_null
+
+      - name: shipping_cost
+        data_tests:
+          - not_null
+          - non_negative
+
+      - name: actual_delivery_date
+        data_tests:
+          - not_null
+
+      - name: shipment_status
+        data_tests:
+          - not_null
+
+      - name: order_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('silver_orders')
+              field: order_id
+        
+        
+      - name: warehouse_id
+        data_tests:
+          - not_null
+         
+  # ==========================================
+  # 7.(Delivery)
+  # ==========================================
+  - name: silver_delivery
+    description: "Staging model for delivery attempts"
+    columns:
+      - name: delivery_id
+        data_tests:
+          - unique
+          - not_null
+
+      - name: delivery_attempt
+        data_tests:
+          - not_null
+          - non_negative
+
+      - name: expected_date
+        data_tests:
+          - not_null
+
+      - name: actual_date
+        data_tests:
+          - not_null
+
+      - name: delay_days
+        data_tests:
+          - not_null
+
+      - name: delivery_cost
+        data_tests:
+          - not_null
+          - non_negative
+
+      - name: delivery_status
+        data_tests:
+          - not_null
+
+      - name: shipment_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('silver_shipments')
+              field: shipment_id
+  # ==========================================
+  # 8.(transportition)
+  # ==========================================
+  - name: silver_transportation
+    description: "Staging model for transportation details"
+    columns:
+      - name: transportation_id
+        data_tests:
+          - unique
+          - not_null
+
+      - name: origin_warehouse_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('silver_warehouse')
+              field: warehouse_id
+
+      - name: destination_location
+        data_tests:
+          - not_null
+
+      - name: transport_mode
+        data_tests:
+          - not_null
+
+      - name: arrival_date
+        data_tests:
+          - not_null
+
+      - name: DEPARTURE_DATE
+        data_tests:
+          - not_null
+
+      - name: distance_km
+        data_tests:
+          - not_null
+          - non_negative
+
+      - name: fuel_cost
+        data_tests:
+          - not_null
+          - non_negative
+
+      - name: transport_cost
+        data_tests:
+          - not_null
+          - non_negative
+
+      - name: transport_status
+        data_tests:
+          - not_null
+
+      - name: shipment_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('silver_shipments')
+              field: shipment_id
+ # ==========================================
+  # 9-(suppliers)
+  # ==========================================
+  - name: silver_suppliers
+    description: "Staging model for suppliers details"
+    columns:
+      - name: supplier_id
+        data_tests:
+          - unique
+          - not_null
+
+      - name: supplier_name
+        data_tests:
+          - not_null
+
+      - name: country
+        data_tests:
+          - not_null
+
+      - name: city
+        data_tests:
+          - not_null
+
+      - name: payment_term
+        data_tests:
+          - not_null
+
+      - name: supplier_type
+        data_tests:
+          - not_null
+
+      - name: lead_time_days
+        data_tests:
+          - not_null
+          - non_negative
+
+      - name: supplier_rating1
+        data_tests:
+          - not_null
+          - non_negative
+
+      - name: status
+        data_tests:
+          - not_null
+
+      - name: created_at
+        tests:
+          -  not_null
+  # ==========================================
+  # 10. (inventory)
+  # ==========================================
+  - name: silver_inventory
+    description: "Staging model for inventory snapshot levels"
+    columns:
+      - name: inventory_id
+        data_tests:
+          - unique
+          - not_null
+
+      - name: snapshot_date
+        data_tests:
+          - not_null
+
+      - name: received_qty
+        data_tests:
+          - not_null
+          - non_negative
+
+      - name: damaged_qty
+        data_tests:
+          - not_null
+          - non_negative
+
+      - name: closing_stock
+        data_tests:
+          - not_null
+          - non_negative
+
+      - name: sold_qty
+        data_tests:
+          - not_null
+          - non_negative
+
+      - name: opening_Stock
+        data_tests:
+          - not_null
+          - non_negative
+
+      - name: stockout_flag
+        data_tests:
+          - not_null
+
+      - name: product_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('silver_products')
+              field: product_id
+          
+      - name: warehouse_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('silver_warehouse')
+              field: warehouse_id
+  # ==========================================
+  # 11. (warehouse)
+  # ==========================================
+  - name: silver_warehouse
+    description: "Staging model for warehouse master details"
+    columns:
+      - name: warehouse_id
+        data_tests:
+          - unique
+          - not_null
+
+      - name: warehouse_name
+        data_tests:
+          - not_null
+
+      - name: country
+        data_tests:
+          - not_null
+
+      - name: city
+        data_tests:
+          - not_null
+
+      - name: warehouse_type
+        data_tests:
+          - not_null
+
+      - name: capcity_units
+        data_tests:
+          - not_null
+          - non_negative
+
+      - name: status
+        data_tests:
+          - not_null
+  # ==========================================
+  # 12. (supplier_performance)
+  # ==========================================
+  - name: silver_supp_performance
+    description: "Staging model for supplier performance evaluation"
+    columns:
+      - name: supplier_performance_id
+        data_tests:
+          - unique
+          - not_null
+
+      - name: evaluation_date
+        data_tests:
+          - not_null
+
+      - name: ordered_quantity
+        data_tests:
+          - not_null
+          - non_negative
+
+      - name: received_quantity
+        data_tests:
+          - not_null
+          - non_negative
+
+      - name: defective_quantity
+        data_tests:
+          - not_null
+          - non_negative
+
+      - name: promised_date
+        data_tests:
+          - not_null
+
+      - name: actual_date
+        data_tests:
+          - not_null
+
+      - name: column_1
+        data_tests:
+          - not_null
+          - non_negative
+
+      - name: column_2
+        data_tests:
+          - not_null
+          - non_negative
+
+      - name: column_3
+        data_tests:
+          - not_null
+          - non_negative
+
+      - name: purchase_order_id
+        data_tests:
+          - not_null
+
+      - name: supplier_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('silver_suppliers')
+              field: supplier_id
+
+   # ==========================================
+  # 13 -(purchase_orders)
+  # ==========================================
+  - name: silver_purchase_orders
+    description: "Staging model for purchase orders data"
+    columns:
+      - name: purchase_order_id
+        data_tests:
+          - unique
+          - not_null
+
+      - name: purchase_status
+        data_tests:
+          - not_null
+
+      - name: order_date
+        data_tests:
+          - not_null
+
+      - name: promised_date
+        data_tests:
+          - not_null
+
+      - name: received_date
+        data_tests:
+          - not_null
+
+      - name: ordered_quantity
+        data_tests:
+          - not_null
+          - non_negative
+
+      - name: received_quantity1
+        data_tests:
+          - not_null
+          - non_negative
+
+      - name: unit_cost
+        data_tests:
+          - not_null
+          - non_negative
+
+      - name: supplier_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('silver_suppliers')
+              field: supplier_id
+
+      - name: warehouse_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('silver_warehouse')
+              field: warehouse_id
+
+      - name: product_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('silver_products')
+              field: product_id
+
+ 
