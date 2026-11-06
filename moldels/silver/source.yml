@@ -1,0 +1,27 @@
+/*
+===========================================================================================
+script puropse:
+Defines and documents the raw tables residing in Snowflake's Bronze layer.
+It enables dbt to reference external source data securely using the {{ source() }} function, 
+establishing clear data lineage right from the ingestion stage
+===========================================================================================
+*/
+version: 2
+sources:
+  - name: globalflow_raw
+    database: globalflow_db
+    schema: globalflow_bronze
+    tables:
+      - name: stg_delivery
+      - name: stg_customers
+      - name: stg_orders
+      - name: stg_order_items
+      - name: stg_inventory
+      - name: stg_warehouse
+      - name: stg_suppliers
+      - name: stg_returns
+      - name: stg_transportation
+      - name: stg_shipments
+      - name: stg_products
+      - name: stg_suppliers_performance
+      - name: stg_purchase_orders
